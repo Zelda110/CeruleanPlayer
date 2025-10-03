@@ -63,22 +63,24 @@ func getArtist(_ id: UUID) -> Artist? {
 }
 
 struct Tags {
-    var title: String?
+    var title: String = ""
     var artists: [UUID]?
     var album: String?
     var cover: URL?
 }
 
-protocol Music: ObservableObject {
-    var type: FileType { get }
-    var tags: Tags { get }
-    func getCover() async -> Image?
+class Music: ObservableObject {
+    var type: FileType = .local
+    @Published var tags: Tags = Tags()
+    func getCover() async -> Image? { nil }
 }
 
 //本地音樂類
 class LocalMusic: Music {
     init(url: URL) {
         self.url = url
+        super.init()
+        self.type = .local
         Task {
             do {
                 let tags = try await self.loadAsset()
@@ -123,11 +125,9 @@ class LocalMusic: Music {
     }
 
     var asset: AVAsset?
-    var type: FileType = .local
     var url: URL
-    @Published var tags: Tags = Tags()
     //導入封面
-    func getCover() async -> Image? {
+    override func getCover() async -> Image? {
         //優先嘗試 tag 裡的封面
         if let url = tags.cover {
             if let cgimgSource = CGImageSourceCreateWithURL(url as CFURL, nil) {
