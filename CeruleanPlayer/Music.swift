@@ -46,22 +46,6 @@ struct Artist {
     var alias: [String]
 }
 
-//從姓名或 uuid 獲取藝術家
-func getArtist(_ name: String, temporary: Bool = false) -> Artist {
-    if let artist = allArtists.first(where: { $0.alias.contains(name) }) {
-        return artist
-    } else {
-        let newArtist = Artist(name)
-        if !temporary {
-            allArtists.append(newArtist)
-        }
-        return newArtist
-    }
-}
-func getArtist(_ id: UUID) -> Artist? {
-    return allArtists.first(where: { $0.id == id })
-}
-
 struct Tags {
     var title: String = ""
     var artists: [UUID]?
@@ -73,6 +57,7 @@ class Music: ObservableObject {
     var type: FileType = .local
     @Published var tags: Tags = Tags()
     func getCover() async -> Image? { nil }
+    let uuid = UUID()
 }
 
 //本地音樂類
@@ -81,50 +66,8 @@ class LocalMusic: Music {
         self.url = url
         super.init()
         self.type = .local
-        Task {
-            do {
-                let tags = try await self.loadAsset()
-                self.tags = tags
-            }
-        }
     }
 
-    //讀取音樂元數據
-    func loadAsset() async throws -> Tags {
-        let asset = AVURLAsset(url: self.url)
-        self.asset = asset
-        let data = try await asset.load(.metadata)
-
-        var tags = Tags()
-        //標題
-        if let title = try await AVMetadataItem.metadataItems(
-            from: data,
-            filteredByIdentifier: .commonIdentifierTitle
-        ).first?.load(.stringValue) {
-            tags.title = title
-        }
-        //藝術家
-        if let artist = try await AVMetadataItem.metadataItems(
-            from: data,
-            filteredByIdentifier: .commonIdentifierArtist
-        ).first?.load(.stringValue) {
-            let artists: [UUID] = artist.split(separator: " & ").map({
-                getArtist(String($0)).id
-            })
-            tags.artists = artists
-        }
-        //專輯
-        if let album = try await AVMetadataItem.metadataItems(
-            from: data,
-            filteredByIdentifier: .commonIdentifierAlbumName
-        ).first?.load(.stringValue) {
-            tags.album = album
-        }
-
-        return tags
-    }
-
-    var asset: AVAsset?
     var url: URL
     //導入封面
     override func getCover() async -> Image? {
@@ -138,7 +81,6 @@ class LocalMusic: Music {
         //從源文件讀取封面
         do {
             let asset = AVURLAsset(url: self.url)
-            self.asset = asset
             let data = try await asset.load(.metadata)
             if let cover = try await AVMetadataItem.metadataItems(
                 from: data,
