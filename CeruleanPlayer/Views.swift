@@ -32,6 +32,14 @@ struct MusicView: View {
         }
     }
     private let albumRoundCorner: CGFloat = 6
+    private var height: CGFloat {
+        switch musicStyle {
+        case .common, .tight:
+            return 50
+        case .mini :
+            return 30
+        }
+    }
 
     //封面視圖
     private func CoverView(tapToPlay: Bool = true) -> some View {
@@ -67,7 +75,12 @@ struct MusicView: View {
 
     //獲取元數據
     var title: String { music.tags.title }
-    var albumName: String { music.tags.album ?? "" }
+    var albumName: String {
+        if let album = music.tags.album {
+            return source.getAlbum(album)!.name
+        }
+        return ""
+    }
     var artists: [String] {
         if let artists = music.tags.artists {
             return artists.map { source.getArtist($0)!.name }
@@ -142,6 +155,7 @@ struct MusicView: View {
             }
         }
         .padding()
+        .frame(height: height)
         .onAppear {
             updateCover()
         }

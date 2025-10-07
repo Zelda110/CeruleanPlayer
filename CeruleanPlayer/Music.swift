@@ -10,8 +10,8 @@ internal import Combine
 import MusicKit
 import SwiftUI
 
-enum FileType {
-    case appleMusic
+enum FileType: Int, Codable {
+    case appleMusic = 0
     case local
 }
 
@@ -32,7 +32,7 @@ enum FileType {
 //}
 
 //藝術家類
-struct Artist {
+struct Artist: Codable {
     init(_ name: String) {
         self.name = name
         self.alias = [self.name]
@@ -46,18 +46,54 @@ struct Artist {
     var alias: [String]
 }
 
-struct Tags {
+//專輯類
+struct Album: Codable {
+    init(_ name: String) {
+        self.name = name
+        self.alias = [self.name]
+        self.id = UUID()
+    }
+    func isSame(_ value: String) -> Bool {
+        return alias.contains(value)
+    }
+    var id: UUID
+    var name: String
+    var alias: [String]
+}
+
+struct Tags: Codable {
     var title: String = ""
     var artists: [UUID]?
-    var album: String?
+    var album: UUID?
     var cover: URL?
 }
 
-class Music: ObservableObject {
+class Music: ObservableObject, Codable {
     var type: FileType = .local
-    @Published var tags: Tags = Tags()
+    var tags: Tags = Tags()
     func getCover() async -> Image? { nil }
-    let uuid = UUID()
+    var uuid = UUID()
+    
+    //實現 json 編碼
+    enum CodingKeys: String, CodingKey {
+        case uuid, type, tags
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.uuid = try container.decode(UUID.self, forKey: .uuid)
+        self.type = try container.decode(FileType.self, forKey: .type)
+        self.tags = try container.decode(Tags.self, forKey: .tags)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.uuid, forKey: .uuid)
+        try container.encode(self.type, forKey: .type)
+        try container.encode(self.tags, forKey: .tags)
+    }
+    
+    init() {}
 }
 
 //本地音樂類
@@ -105,5 +141,22 @@ class LocalMusic: Music {
         } catch _ {
             return nil
         }
+    }
+    
+    //實現 json 編碼
+    enum CodingKeys: String, CodingKey {
+        case url
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.url = try container.decode(URL.self, forKey: .url)
+        try super.init(from: decoder)
+    }
+    
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(url, forKey: .url)
+        try super.encode(to: encoder)
     }
 }

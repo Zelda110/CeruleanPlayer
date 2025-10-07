@@ -20,7 +20,7 @@ class Play: ObservableObject {
     init() {
 
     }
-    var player = AVAudioPlayer()
+    @Published var player = AVAudioPlayer()
     @Published var playList: [Music] = []
     var oringinPlayList: [Music] = []
 
@@ -88,7 +88,7 @@ class Play: ObservableObject {
     func setList(_ list: [Music], startMusic: Music? = nil) {
         oringinPlayList = list
         playList = shuffled ? list.shuffled() : list
-        if let start = startMusic{
+        if let start = startMusic {
             nowPlaying = playList.firstIndex { $0 === start }!
         } else {
             nowPlaying = 0
@@ -117,5 +117,22 @@ class Play: ObservableObject {
             nowPlaying = oringinPlayList.firstIndex { $0 === nowMusic! }!
             playList = oringinPlayList
         }
+    }
+}
+
+struct PlayListView: View {
+    @EnvironmentObject var player: Play
+    var body: some View {
+        List {
+            if !player.playList.isEmpty {
+                ForEach(player.playList[player.nowPlaying...], id: \.uuid) {
+                    music in
+                    MusicView(music: music)
+                        .musicStyle(.tight)
+                }
+            }
+        }
+        .frame(width: player.playList.isEmpty ? 0 : 300)
+        .fixedSize(horizontal: true, vertical: false)
     }
 }

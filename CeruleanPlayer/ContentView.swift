@@ -7,38 +7,68 @@
 
 import SwiftUI
 
-enum Page {
-    case music
-    case home
-}
-
 struct ContentView: View {
+    enum Page {
+        case music
+        case home
+        case localSource
+    }
+
     @StateObject var player = Play()
     @StateObject var source = Source()
-    @State var page: Page = .home
+    @State var page: Page = .localSource
+
+    //顯示導入本地音樂進度
+    private struct LoadingProgressView: View {
+        @EnvironmentObject var source: Source
+        var body: some View {
+            if source.loadedSongs >= 0 {
+                VStack(spacing: 0) {
+                    Text("正在載入本地音樂源")
+                    Text("\(Int(source.loadedSongs))/\(Int(source.totalSongs))")
+                    ProgressView(
+                        value: source.loadedSongs,
+                        total: source.totalSongs
+                    )
+                }.padding(8)
+            }
+        }
+    }
+
     var body: some View {
-        ZStack {
+        HStack {
             #if os(macOS)
                 NavigationSplitView {
-                    List(selection: $page) {
-                        Section {
-                            Label("主頁", systemImage: "house")
-                                .tag(Page.home)
-                        }
-                        Section(header: Text("資料庫")) {
-                            Label("音樂", systemImage: "music.note")
-                                .tag(Page.music)
-                        }
-                    }.listStyle(.sidebar)
-
+                    VStack {
+                        List(selection: $page) {
+                            Section {
+                                Label("主頁", systemImage: "house")
+                                    .tag(Page.home)
+                            }
+                            Section(header: Text("資料庫")) {
+                                Label("音樂", systemImage: "music.note")
+                                    .tag(Page.music)
+                            }
+                            Section(header: Text("音樂源")) {
+                                Label("本地", systemImage: "desktopcomputer")
+                                    .tag(Page.localSource)
+                            }
+                        }.listStyle(.sidebar)
+                        Spacer()
+                        LoadingProgressView()
+                    }
                 } detail: {
                     ZStack {
                         //主頁面
                         switch page {
                         case .home:
                             HomePage()
+                                .safeAreaPadding(.bottom, 30)
                         case .music:
                             MusicPage()
+                                .safeAreaPadding(.bottom, 30)
+                        case .localSource:
+                            LocalSourcePage()
                                 .safeAreaPadding(.bottom, 30)
                         }
 
@@ -47,8 +77,11 @@ struct ContentView: View {
                             Spacer()
                             MiniPlayerView()
                         }
-                    }.padding()
+                    }
+                    .padding()
                 }
+                .frame(minWidth: 700, minHeight: 450)
+                PlayListView()
             #elseif os(iOS)
                 TabView {
                     Tab {
@@ -79,15 +112,6 @@ struct ContentView: View {
         }
         .environmentObject(player)
         .environmentObject(source)
-        #if os(macOS)
-            .frame(minWidth: 800, minHeight: 450)
-        #endif
-        .onAppear {
-            Task.detached{
-                print("a")
-                await source.loadSources()
-            }
-        }
     }
 }
 
@@ -106,10 +130,47 @@ struct MusicPage: View {
     #endif
     var body: some View {
         List {
-            ForEach(source.allSongs,id: \.uuid){ music in
-                MusicView(music: music, musicList: source.allSongs)
+            ForEach(source.allLocalSongs, id: \.uuid) { music in
+                MusicView(
+                    music: music as Music,
+                    musicList: source.allLocalSongs
+                )
             }
         }
+    }
+}
+
+struct LocalSourcePage: View {
+    @EnvironmentObject var source: Source
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("音樂源")
+            VStack {
+                ForEach(source.songSources, id: \.self) { s in
+                    HStack {
+                        Text(s.path())
+                        Spacer()
+                        Button("-") {
+                            source.songSources.removeAll { $0 == s }
+                        }
+                    }
+                }
+            }
+            HStack {
+                Button {
+
+                } label: {
+                    Label("添加檔案夾", systemImage: "plus")
+                }
+                Button {
+                    Task.detached {
+                        await source.loadSources()
+                    }
+                } label: {
+                    Label("重新掃描", systemImage: "magnifyingglass")
+                }
+            }
+        }.padding()
     }
 }
 
