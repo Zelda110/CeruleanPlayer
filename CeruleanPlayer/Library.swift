@@ -30,7 +30,6 @@ class Source: ObservableObject {
         in: .userDomainMask
     )[0].appending(path: "CeruleanPlayer")
     
-    //    var songSources: [URL] = [URL(filePath: "smb://192.168.50.110/resource/Musics/C418")]
     @Published var songSources: [URL] = [URL(filePath: "/Users/zelda/Music/m")]
 
     @Published var allArtists: [Artist] = []

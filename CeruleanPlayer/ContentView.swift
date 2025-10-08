@@ -13,10 +13,16 @@ struct ContentView: View {
         case home
         case localSource
     }
+    enum SideBar {
+        case playList
+        case lyrics
+        case null
+    }
 
     @StateObject var player = Play()
     @StateObject var source = Source()
-    @State var page: Page = .localSource
+    @State var page: Page = .music
+    @State var sideBar: SideBar = .playList
 
     //顯示導入本地音樂進度
     private struct LoadingProgressView: View {
@@ -36,7 +42,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        HStack {
+        ZStack {
             #if os(macOS)
                 NavigationSplitView {
                     VStack {
@@ -60,28 +66,45 @@ struct ContentView: View {
                 } detail: {
                     ZStack {
                         //主頁面
-                        switch page {
-                        case .home:
-                            HomePage()
-                                .safeAreaPadding(.bottom, 30)
-                        case .music:
-                            MusicPage()
-                                .safeAreaPadding(.bottom, 30)
-                        case .localSource:
-                            LocalSourcePage()
-                                .safeAreaPadding(.bottom, 30)
-                        }
+                        ZStack {
+                            switch page {
+                            case .home:
+                                HomePage()
+                            case .music:
+                                MusicPage()
+                            case .localSource:
+                                LocalSourcePage()
+                            }
+                        }.safeAreaPadding(.bottom, 30)
 
                         //懸浮播放器
                         VStack {
                             Spacer()
-                            MiniPlayerView()
+                            MiniPlayerView(sideBar: $sideBar)
+                        }
+                    }.safeAreaPadding(.trailing, sideBar == .null ? 0 : 300)
+                        .padding()
+                }
+                .frame(minWidth: sideBar == .null ? 700 : 1000, minHeight: 450)
+
+                HStack {
+                    Spacer()
+                    ZStack {
+                        switch sideBar {
+                        case .playList:
+                            PlayListView()
+                        case .lyrics:
+                            EmptyView()
+                        case .null:
+                            EmptyView()
                         }
                     }
-                    .padding()
+                    .ignoresSafeArea()
+                    .background(.clear)
+                    .glassEffect(.identity, in: .rect)
                 }
-                .frame(minWidth: 700, minHeight: 450)
-                PlayListView()
+            
+            
             #elseif os(iOS)
                 TabView {
                     Tab {
@@ -110,6 +133,7 @@ struct ContentView: View {
                 .tabBarMinimizeBehavior(.onScrollDown)
             #endif
         }
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .environmentObject(player)
         .environmentObject(source)
     }

@@ -22,7 +22,7 @@ class Play: ObservableObject {
     }
     @Published var player = AVAudioPlayer()
     @Published var playList: [Music] = []
-    var oringinPlayList: [Music] = []
+    @Published var oringinPlayList: [Music] = []
 
     @Published var shuffled: Bool = false
 
@@ -72,6 +72,10 @@ class Play: ObservableObject {
         player.pause()
         playStatus = .paused
     }
+    func stop() {
+        player.stop()
+        playStatus = .stopped
+    }
 
     @Published var nowPlaying: Int = 0
     var nowMusic: Music? {
@@ -93,7 +97,7 @@ class Play: ObservableObject {
         } else {
             nowPlaying = 0
         }
-        playStatus = .stopped
+        stop()
     }
 
     //上一首
@@ -132,7 +136,9 @@ struct PlayListView: View {
                 }
             }
         }
-        .frame(width: player.playList.isEmpty ? 0 : 300)
+        .scrollContentBackground(.hidden)
+        .ignoresSafeArea()
+        .frame(width: 300)
         .fixedSize(horizontal: true, vertical: false)
     }
 }

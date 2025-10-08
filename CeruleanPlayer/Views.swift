@@ -36,7 +36,7 @@ struct MusicView: View {
         switch musicStyle {
         case .common, .tight:
             return 50
-        case .mini :
+        case .mini:
             return 30
         }
     }
@@ -176,8 +176,10 @@ struct MusicView: View {
         MusicView(music: music, musicStyle: style)
     }
 }
+
 struct MiniPlayerView: View {
     @EnvironmentObject var player: Play
+    @Binding var sideBar: ContentView.SideBar
     var body: some View {
         HStack {
             //播放控制按鈕
@@ -212,7 +214,7 @@ struct MiniPlayerView: View {
                         .imageScale(.large)
                 }
                 .frame(width: 30)
-                .keyboardShortcut(.space,modifiers: [])
+                .keyboardShortcut(.space, modifiers: [])
                 //下一首
                 Button {
                     player.next()
@@ -229,13 +231,46 @@ struct MiniPlayerView: View {
                 //音樂信息顯示
                 ZStack {
                     let music = player.nowMusic!
-                    MusicView(music: music)
+                    MusicView(music: music,musicList: player.playList)
                         .musicStyle(.mini)
                 }
-                .animation(.bouncy)
+                .animation(.snappy())
             } else {
                 Text("未在播放")
             }
+
+            //邊欄控制
+            HStack(spacing: 8) {
+                //顯示歌詞
+                Button {
+                    if sideBar == .lyrics {
+                        sideBar = .null
+                    } else {
+                        sideBar = .lyrics
+                    }
+                } label: {
+                    Image(systemName: "quote.bubble")
+                        .imageScale(.small)
+                        .foregroundStyle(sideBar == .lyrics ? .accent : .gray)
+                }
+                .frame(width: 20)
+
+                //顯示播放列表
+                Button {
+                    if sideBar == .playList {
+                        sideBar = .null
+                    } else {
+                        sideBar = .playList
+                    }
+                } label: {
+                    Image(systemName: "list.bullet")
+                        .imageScale(.small)
+                        .foregroundStyle(sideBar == .playList ? .accent : .gray)
+                }
+                .frame(width: 20)
+            }
+            .buttonStyle(.plain)
+            .buttonStyle(.glass)
         }
         .padding()
         .frame(height: 40)
@@ -244,32 +279,4 @@ struct MiniPlayerView: View {
             .glassEffect()
         #endif
     }
-}
-
-#Preview {
-    @Previewable @State var player = Play()
-    MiniPlayerView()
-        .environmentObject(player)
-        .onAppear {
-            player.setList([
-                LocalMusic(
-                    url: URL(filePath: "/Users/zelda/Music/With/1.1 芳華絕代.m4a")
-                ),
-                LocalMusic(
-                    url: URL(filePath: "/Users/zelda/Music/With/1.2 約會.m4a")
-                ),
-                LocalMusic(
-                    url: URL(filePath: "/Users/zelda/Music/With/1.3 花生騷.m4a")
-                ),
-                LocalMusic(
-                    url: URL(
-                        filePath:
-                            "/Users/zelda/Music/With/1.4 相愛很難 (電影_男人四十_歌曲).m4a"
-                    )
-                ),
-                LocalMusic(
-                    url: URL(filePath: "/Users/zelda/Music/With/1.5 兩個女人.m4a")
-                ),
-            ])
-        }
 }
